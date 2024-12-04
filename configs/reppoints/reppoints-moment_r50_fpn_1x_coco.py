@@ -1,6 +1,6 @@
 _base_ = [
     '../_base_/datasets/coco_detection.py',
-    '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
+    '../_base_/schedules/schedule_20e.py', '../_base_/default_runtime.py'
 ]
 model = dict(
     type='RepPointsDetector',
@@ -29,7 +29,7 @@ model = dict(
         num_outs=5),
     bbox_head=dict(
         type='RepPointsHead',
-        num_classes=80,
+        num_classes=1,
         in_channels=256,
         feat_channels=256,
         point_feat_channels=256,
@@ -71,4 +71,4 @@ model = dict(
         nms=dict(type='nms', iou_threshold=0.5),
         max_per_img=100))
 
-optim_wrapper = dict(optimizer=dict(lr=0.01))
+optim_wrapper = dict(optimizer=dict(lr=0.0002))

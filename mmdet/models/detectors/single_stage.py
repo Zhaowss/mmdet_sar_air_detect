@@ -7,8 +7,16 @@ from mmdet.registry import MODELS
 from mmdet.structures import OptSampleList, SampleList
 from mmdet.utils import ConfigType, OptConfigType, OptMultiConfig
 from .base import BaseDetector
-
-
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+from torchvision import transforms
+from PIL import Image
+import torch
+from sklearn.cluster import KMeans
+from .GCNdataloader import create_graph_data
+from .GCNATTEN import  GraphNet
+from torch_geometric.data import Batch
 @MODELS.register_module()
 class SingleStageDetector(BaseDetector):
     """Base class for single-stage detectors.
@@ -35,6 +43,8 @@ class SingleStageDetector(BaseDetector):
         self.bbox_head = MODELS.build(bbox_head)
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
+        self.GCN=GraphNet(input_dim=2,hidden_dim=512,output_dim=100)
+
 
     def _load_from_state_dict(self, state_dict: dict, prefix: str,
                               local_metadata: dict, strict: bool,
@@ -143,7 +153,68 @@ class SingleStageDetector(BaseDetector):
             tuple[Tensor]: Multi-level features that may have
             different resolutions.
         """
+        # 图特征的提取
+        all_corner_tensors, graph_features=self.extract_graph_features(batch_inputs)
+        graph_data_list=create_graph_data(all_corner_tensors,graph_features)
+        batch_input_feature=Batch.from_data_list(graph_data_list)
+        graph_exact_feature=self.GCN(batch_input_feature)
         x = self.backbone(batch_inputs)
         if self.with_neck:
             x = self.neck(x)
         return x
+
+    def extract_graph_features(self, img):
+        """Extract corner points and construct graph features."""
+        # List to store corner tensors
+        all_corner_tensors = []
+        # Maximum number of corners to consider
+        max_num_corners = 100
+
+        # Loop through each image
+        for image in img:
+            # Convert to numpy format
+            image = image.permute(1, 2, 0).cpu().numpy()
+            gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+
+            # Detect corners using GoodFeaturesToTrack
+            corners = cv2.goodFeaturesToTrack(
+                gray_image, maxCorners=128, qualityLevel=0.20, minDistance=10
+            )
+
+            if corners is None:
+                print("No corners detected, skipping this image.")
+                continue
+
+            corners = corners.reshape(-1, 2)
+            num_corners = len(corners)
+
+            if num_corners > max_num_corners:
+                # Sort corners by intensity and keep the top `max_num_corners`
+                corner_values = [gray_image[int(y), int(x)] for x, y in corners]
+                sorted_corners = sorted(zip(corners, corner_values), key=lambda x: x[1], reverse=True)
+                corners = np.array([corner for corner, _ in sorted_corners[:max_num_corners]])
+            else:
+                # Duplicate corners to match `max_num_corners` if needed
+                num_repeats = max_num_corners - num_corners
+                repeated_corners = np.tile(corners, (num_repeats // num_corners, 1))
+                remainder = num_repeats % num_corners
+                if remainder > 0:
+                    repeated_corners = np.vstack((repeated_corners, corners[:remainder]))
+                corners = np.vstack((corners, repeated_corners))
+
+            # Add corners to the list
+            all_corner_tensors.append(corners)
+
+        # Convert list of corner tensors to a single tensor
+        all_corner_tensors = torch.tensor(np.array(all_corner_tensors), dtype=torch.float32).to('cuda:0')
+
+        # Compute pairwise similarity to construct graph features
+        num_images, num_corners, _ = all_corner_tensors.shape
+        graph_features = torch.zeros((num_images, max_num_corners, max_num_corners), dtype=torch.float32).to('cuda:0')
+
+        for i in range(num_images):
+            corners = all_corner_tensors[i]
+            pairwise_distances = torch.cdist(corners, corners)  # Compute pairwise distances
+            graph_features[i] = torch.exp(-pairwise_distances)  # Similarity based on distance
+
+        return all_corner_tensors, graph_features

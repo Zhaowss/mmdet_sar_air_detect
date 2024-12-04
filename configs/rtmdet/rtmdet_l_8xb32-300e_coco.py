@@ -1,5 +1,5 @@
 _base_ = [
-    '../_base_/default_runtime.py', '../_base_/schedules/schedule_1x.py',
+    '../_base_/default_runtime.py', '../_base_/schedules/schedule_20e.py',
     '../_base_/datasets/coco_detection.py', './rtmdet_tta.py'
 ]
 model = dict(
@@ -110,13 +110,13 @@ test_pipeline = [
 ]
 
 train_dataloader = dict(
-    batch_size=32,
-    num_workers=10,
+    batch_size=4,
+    num_workers=1,
     batch_sampler=None,
     pin_memory=True,
     dataset=dict(pipeline=train_pipeline))
 val_dataloader = dict(
-    batch_size=5, num_workers=10, dataset=dict(pipeline=test_pipeline))
+    batch_size=4, num_workers=1, dataset=dict(pipeline=test_pipeline))
 test_dataloader = val_dataloader
 
 max_epochs = 300

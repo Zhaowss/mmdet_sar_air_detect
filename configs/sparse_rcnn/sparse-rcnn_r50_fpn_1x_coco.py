@@ -1,6 +1,6 @@
 _base_ = [
     '../_base_/datasets/coco_detection.py',
-    '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
+    '../_base_/schedules/schedule_20e.py', '../_base_/default_runtime.py'
 ]
 num_stages = 6
 num_proposals = 100
@@ -46,7 +46,7 @@ model = dict(
         bbox_head=[
             dict(
                 type='DIIHead',
-                num_classes=80,
+                num_classes=1,
                 num_ffn_fcs=2,
                 num_heads=8,
                 num_cls_fcs=1,

@@ -37,6 +37,8 @@ model = dict(
             ])))
 
 # learning policy
-train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=50, val_interval=1)
+train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=200, val_interval=100)
 
-param_scheduler = [dict(type='MultiStepLR', end=50, milestones=[40])]
+param_scheduler = [dict(type='MultiStepLR', end=200, milestones=[40])]
+default_hooks = dict(
+    checkpoint=dict(type='CheckpointHook', interval=100,save_best='auto'))

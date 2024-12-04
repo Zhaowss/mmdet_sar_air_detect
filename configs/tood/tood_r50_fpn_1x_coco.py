@@ -1,6 +1,6 @@
 _base_ = [
     '../_base_/datasets/coco_detection.py',
-    '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
+    '../_base_/schedules/schedule_20e.py', '../_base_/default_runtime.py'
 ]
 
 # model settings
@@ -31,7 +31,7 @@ model = dict(
         num_outs=5),
     bbox_head=dict(
         type='TOODHead',
-        num_classes=80,
+        num_classes=1,
         in_channels=256,
         stacked_convs=6,
         feat_channels=256,

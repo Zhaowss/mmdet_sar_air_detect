@@ -19,8 +19,8 @@ from mmdet.utils import setup_cache_size_limit_of_dynamo
 def parse_args():
     parser = argparse.ArgumentParser(
         description='MMDet test (and eval) a model')
-    parser.add_argument('config', help='test config file path')
-    parser.add_argument('checkpoint', help='checkpoint file')
+    parser.add_argument('--config',default="D:\\Desktop\\mmdetection-Myimprove\\tools\work_dirs\\rtmdet-ins_l_8xb32-300e_coco\\rtmdet-ins_l_8xb32-300e_coco.py", help='test config file path')
+    parser.add_argument('--checkpoint',default="D:\\Desktop\\mmdetection-Myimprove\\tools\work_dirs\\rtmdet-ins_l_8xb32-300e_coco\\epoch_300.pth", help='checkpoint file')
     parser.add_argument(
         '--work-dir',
         help='the directory to save the file containing evaluation metrics')
@@ -32,6 +32,7 @@ def parse_args():
         '--show', action='store_true', help='show prediction results')
     parser.add_argument(
         '--show-dir',
+        default="show",
         help='directory where painted images will be saved. '
         'If specified, it will be automatically saved '
         'to the work_dir/timestamp/show_dir')

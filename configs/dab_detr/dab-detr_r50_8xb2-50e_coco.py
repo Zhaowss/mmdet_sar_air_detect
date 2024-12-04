@@ -69,7 +69,7 @@ model = dict(
     positional_encoding=dict(num_feats=128, temperature=20, normalize=True),
     bbox_head=dict(
         type='DABDETRHead',
-        num_classes=80,
+        num_classes=1,
         embed_dims=256,
         loss_cls=dict(
             type='FocalLoss',
@@ -131,13 +131,13 @@ train_dataloader = dict(dataset=dict(pipeline=train_pipeline))
 # optimizer
 optim_wrapper = dict(
     type='OptimWrapper',
-    optimizer=dict(type='AdamW', lr=0.0001, weight_decay=0.0001),
+    optimizer=dict(type='AdamW', lr  =0.0025, weight_decay=0.0001),
     clip_grad=dict(max_norm=0.1, norm_type=2),
     paramwise_cfg=dict(
         custom_keys={'backbone': dict(lr_mult=0.1, decay_mult=1.0)}))
 
 # learning policy
-max_epochs = 50
+max_epochs = 300
 train_cfg = dict(
     type='EpochBasedTrainLoop', max_epochs=max_epochs, val_interval=1)
 val_cfg = dict(type='ValLoop')

@@ -1,6 +1,6 @@
 # dataset settings
 dataset_type = 'CocoDataset'
-data_root = 'data/coco/'
+data_root = 'D:\\Desktop\\mmdetection\\data\\VOCdevkit\\VOC2007\\'
 
 # Example to use different file client
 # Method 1: simply set the data root and let the file I/O module
@@ -8,7 +8,7 @@ data_root = 'data/coco/'
 
 # data_root = 's3://openmmlab/datasets/detection/coco/'
 
-# Method 2: Use `backend_args`, `file_client_args` in versions before 3.0.0rc6
+# Method 2: Use `bac   kend_args`, `file_client_args` in versions before 3.0.0rc6
 # backend_args = dict(
 #     backend='petrel',
 #     path_mapping=dict({
@@ -43,8 +43,8 @@ train_dataloader = dict(
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
-        ann_file='annotations/instances_train2017.json',
-        data_prefix=dict(img='train2017/'),
+        ann_file='voc2007train.json',
+        data_prefix=dict(img='JPEGImages/'),
         filter_cfg=dict(filter_empty_gt=True, min_size=32),
         pipeline=train_pipeline,
         backend_args=backend_args))
@@ -57,8 +57,8 @@ val_dataloader = dict(
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
-        ann_file='annotations/instances_val2017.json',
-        data_prefix=dict(img='val2017/'),
+        ann_file='voc2007val.json',
+        data_prefix=dict(img='JPEGImages/'),
         test_mode=True,
         pipeline=test_pipeline,
         backend_args=backend_args))
@@ -66,7 +66,7 @@ test_dataloader = val_dataloader
 
 val_evaluator = dict(
     type='CocoMetric',
-    ann_file=data_root + 'annotations/instances_val2017.json',
+    ann_file=data_root + 'voc2007val.json',
     metric='bbox',
     format_only=False,
     backend_args=backend_args)

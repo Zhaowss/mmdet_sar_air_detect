@@ -1,6 +1,6 @@
 _base_ = [
     '../_base_/datasets/coco_detection.py',
-    '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
+    '../_base_/schedules/schedule_20e.py', '../_base_/default_runtime.py'
 ]
 # model settings
 model = dict(
@@ -31,7 +31,7 @@ model = dict(
         relu_before_extra_convs=True),
     bbox_head=dict(
         type='VFNetHead',
-        num_classes=80,
+        num_classes=1,
         in_channels=256,
         stacked_convs=3,
         feat_channels=256,
@@ -85,11 +85,11 @@ test_dataloader = val_dataloader
 
 # optimizer
 optim_wrapper = dict(
-    optimizer=dict(lr=0.01),
+    optimizer=dict(lr=0.002),
     paramwise_cfg=dict(bias_lr_mult=2., bias_decay_mult=0.),
     clip_grad=None)
 # learning rate
-max_epochs = 12
+max_epochs =200
 param_scheduler = [
     dict(type='LinearLR', start_factor=0.1, by_epoch=False, begin=0, end=500),
     dict(
@@ -97,7 +97,7 @@ param_scheduler = [
         begin=0,
         end=max_epochs,
         by_epoch=True,
-        milestones=[8, 11],
+        milestones=[100, 200],
         gamma=0.1)
 ]
 
