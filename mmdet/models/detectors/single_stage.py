@@ -2,7 +2,7 @@
 from typing import List, Tuple, Union
 
 from torch import Tensor
-
+from torch_geometric.loader import DataLoader
 from mmdet.registry import MODELS
 from mmdet.structures import OptSampleList, SampleList
 from mmdet.utils import ConfigType, OptConfigType, OptMultiConfig
@@ -43,7 +43,7 @@ class SingleStageDetector(BaseDetector):
         self.bbox_head = MODELS.build(bbox_head)
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
-        self.GCN=GraphNet(input_dim=2,hidden_dim=512,output_dim=100)
+        self.GCN=GraphNet(input_dim=2,hidden_dim=512,output_dim=100).cuda()
 
 
     def _load_from_state_dict(self, state_dict: dict, prefix: str,
@@ -84,8 +84,8 @@ class SingleStageDetector(BaseDetector):
         Returns:
             dict: A dictionary of loss components.
         """
-        x = self.extract_feat(batch_inputs)
-        losses = self.bbox_head.loss(x, batch_data_samples)
+        x ,graph_exact_feature = self.extract_feat(batch_inputs)
+        losses = self.bbox_head.loss(x, batch_data_samples,graph_exact_feature)
         return losses
 
     def predict(self,
@@ -116,9 +116,9 @@ class SingleStageDetector(BaseDetector):
                 - bboxes (Tensor): Has a shape (num_instances, 4),
                     the last dimension 4 arrange as (x1, y1, x2, y2).
         """
-        x = self.extract_feat(batch_inputs)
+        x, graph_exact_feature= self.extract_feat(batch_inputs)
         results_list = self.bbox_head.predict(
-            x, batch_data_samples, rescale=rescale)
+            x, batch_data_samples,graph_exact_feature, rescale=rescale)
         batch_data_samples = self.add_pred_to_datasample(
             batch_data_samples, results_list)
         return batch_data_samples
@@ -139,8 +139,8 @@ class SingleStageDetector(BaseDetector):
         Returns:
             tuple[list]: A tuple of features from ``bbox_head`` forward.
         """
-        x = self.extract_feat(batch_inputs)
-        results = self.bbox_head.forward(x)
+        x ,graph_exact_feature= self.extract_feat(batch_inputs)
+        results = self.bbox_head.forward(x,graph_exact_feature)
         return results
 
     def extract_feat(self, batch_inputs: Tensor) -> Tuple[Tensor]:
@@ -161,7 +161,7 @@ class SingleStageDetector(BaseDetector):
         x = self.backbone(batch_inputs)
         if self.with_neck:
             x = self.neck(x)
-        return x
+        return x,graph_exact_feature
 
     def extract_graph_features(self, img):
         """Extract corner points and construct graph features."""

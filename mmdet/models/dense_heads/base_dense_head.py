@@ -98,7 +98,7 @@ class BaseDenseHead(BaseModule, metaclass=ABCMeta):
             positive_infos.append(pos_info)
         return positive_infos
 
-    def loss(self, x: Tuple[Tensor], batch_data_samples: SampleList) -> dict:
+    def loss(self, x: Tuple[Tensor], batch_data_samples: SampleList,graph_feature) -> dict:
         """Perform forward propagation and loss calculation of the detection
         head on the features of the upstream network.
 
@@ -112,7 +112,7 @@ class BaseDenseHead(BaseModule, metaclass=ABCMeta):
         Returns:
             dict: A dictionary of loss components.
         """
-        outs = self(x)
+        outs = self(x,graph_feature)
 
         outputs = unpack_gt_instances(batch_data_samples)
         (batch_gt_instances, batch_gt_instances_ignore,
@@ -171,6 +171,7 @@ class BaseDenseHead(BaseModule, metaclass=ABCMeta):
     def predict(self,
                 x: Tuple[Tensor],
                 batch_data_samples: SampleList,
+                graph_exact_feature,
                 rescale: bool = False) -> InstanceList:
         """Perform forward propagation of the detection head and predict
         detection results on the features of the upstream network.
@@ -192,7 +193,7 @@ class BaseDenseHead(BaseModule, metaclass=ABCMeta):
             data_samples.metainfo for data_samples in batch_data_samples
         ]
 
-        outs = self(x)
+        outs = self(x,graph_exact_feature)
 
         predictions = self.predict_by_feat(
             *outs, batch_img_metas=batch_img_metas, rescale=rescale)

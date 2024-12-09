@@ -16,8 +16,8 @@ from ..task_modules import anchor_inside_flags
 from ..utils import (images_to_levels, multi_apply, sigmoid_geometric_mean,
                      unmap)
 from .atss_head import ATSSHead
-
-
+import torch.nn.functional as F
+from .ConvolutionalSelfAttentionFusion import  ConvolutionalSelfAttentionFusion
 @MODELS.register_module()
 class RTMDetHead(ATSSHead):
     """Detection Head of RTMDet.
@@ -104,7 +104,7 @@ class RTMDetHead(ATSSHead):
         if self.with_objectness:
             normal_init(self.rtm_obj, std=0.01, bias=bias_cls)
 
-    def forward(self, feats: Tuple[Tensor, ...]) -> tuple:
+    def forward(self, feats: Tuple[Tensor, ...],graph_exact_feature) -> tuple:
         """Forward features from the upstream network.
 
         Args:
@@ -632,6 +632,10 @@ class RTMDetSepBNHead(RTMDetHead):
                     self.cls_convs[n][i].conv = self.cls_convs[0][i].conv
                     self.reg_convs[n][i].conv = self.reg_convs[0][i].conv
 
+        self.fusion_model = ConvolutionalSelfAttentionFusion(in_channels_visual=self.feat_channels,
+                                               in_channels_graph=1,
+                                               out_channels=self.feat_channels)
+
     def init_weights(self) -> None:
         """Initialize weights of the head."""
         for m in self.modules():
@@ -647,7 +651,7 @@ class RTMDetSepBNHead(RTMDetHead):
             for rtm_obj in self.rtm_obj:
                 normal_init(rtm_obj, std=0.01, bias=bias_cls)
 
-    def forward(self, feats: Tuple[Tensor, ...]) -> tuple:
+    def forward(self, feats: Tuple[Tensor, ...],graph_feature) -> tuple:
         """Forward features from the upstream network.
 
         Args:
@@ -669,8 +673,11 @@ class RTMDetSepBNHead(RTMDetHead):
         bbox_preds = []
         for idx, (x, stride) in enumerate(
                 zip(feats, self.prior_generator.strides)):
-            cls_feat = x
-            reg_feat = x
+
+            graph_feat_resized = F.interpolate(graph_feature.unsqueeze(1) , size=x.shape[2:], mode='bilinear', align_corners=False)
+            fuse_feature=self.fusion_model(x,graph_feat_resized)
+            cls_feat = fuse_feature
+            reg_feat = fuse_feature
 
             for cls_layer in self.cls_convs[idx]:
                 cls_feat = cls_layer(cls_feat)
