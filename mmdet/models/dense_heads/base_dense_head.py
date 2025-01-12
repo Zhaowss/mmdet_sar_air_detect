@@ -112,7 +112,7 @@ class BaseDenseHead(BaseModule, metaclass=ABCMeta):
         Returns:
             dict: A dictionary of loss components.
         """
-        outs = self(x,graph_feature)
+        outs = self(x)
 
         outputs = unpack_gt_instances(batch_data_samples)
         (batch_gt_instances, batch_gt_instances_ignore,

@@ -16,7 +16,9 @@ import torch
 from sklearn.cluster import KMeans
 from .GCNdataloader import create_graph_data
 from .GCNATTEN import  GraphNet
+from .Gatattention import EnhancedGraphNetWithGAT
 from torch_geometric.data import Batch
+from .EGNFF import  EnhancedGraphNetWithFeatureFusion
 @MODELS.register_module()
 class SingleStageDetector(BaseDetector):
     """Base class for single-stage detectors.
@@ -44,7 +46,8 @@ class SingleStageDetector(BaseDetector):
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
         self.GCN=GraphNet(input_dim=2,hidden_dim=512,output_dim=100).cuda()
-
+        self.GCNAt=EnhancedGraphNetWithGAT(input_dim=2,hidden_dim=512,output_dim=100).cuda()
+        self.GATweight=EnhancedGraphNetWithFeatureFusion(hidden_dim=512,num_fpn_layers=3)
 
     def _load_from_state_dict(self, state_dict: dict, prefix: str,
                               local_metadata: dict, strict: bool,
@@ -140,7 +143,7 @@ class SingleStageDetector(BaseDetector):
             tuple[list]: A tuple of features from ``bbox_head`` forward.
         """
         x ,graph_exact_feature= self.extract_feat(batch_inputs)
-        results = self.bbox_head.forward(x,graph_exact_feature)
+        results = self.bbox_head.forward(x)
         return results
 
     def extract_feat(self, batch_inputs: Tensor) -> Tuple[Tensor]:
@@ -157,8 +160,10 @@ class SingleStageDetector(BaseDetector):
         all_corner_tensors, graph_features=self.extract_graph_features(batch_inputs)
         graph_data_list=create_graph_data(all_corner_tensors,graph_features)
         batch_input_feature=Batch.from_data_list(graph_data_list)
-        graph_exact_feature=self.GCN(batch_input_feature)
+        graph_exact_feature=self.GCNAt(batch_input_feature)
         x = self.backbone(batch_inputs)
+
+        x=self.GATweight(graph_exact_feature,x)
         if self.with_neck:
             x = self.neck(x)
         return x,graph_exact_feature
@@ -214,7 +219,7 @@ class SingleStageDetector(BaseDetector):
 
         for i in range(num_images):
             corners = all_corner_tensors[i]
-            pairwise_distances = torch.cdist(corners, corners)  # Compute pairwise distances
+            pairwise_distances = torch.cdist(corners, corners,2)  # Compute pairwise distances
             graph_features[i] = torch.exp(-pairwise_distances)  # Similarity based on distance
 
         return all_corner_tensors, graph_features

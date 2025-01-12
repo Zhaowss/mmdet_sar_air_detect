@@ -18,6 +18,9 @@ from ..utils import (images_to_levels, multi_apply, sigmoid_geometric_mean,
 from .atss_head import ATSSHead
 import torch.nn.functional as F
 from .ConvolutionalSelfAttentionFusion import  ConvolutionalSelfAttentionFusion
+from .ConvolutionalSelfAttentionFusion2 import  WeightedAlignmentFusion
+
+from .ConvolutionalSelfAttentionFusion3 import EnhancedPerfectAlignmentFusion
 @MODELS.register_module()
 class RTMDetHead(ATSSHead):
     """Detection Head of RTMDet.
@@ -104,7 +107,7 @@ class RTMDetHead(ATSSHead):
         if self.with_objectness:
             normal_init(self.rtm_obj, std=0.01, bias=bias_cls)
 
-    def forward(self, feats: Tuple[Tensor, ...],graph_exact_feature) -> tuple:
+    def forward(self, feats: Tuple[Tensor, ...]) -> tuple:
         """Forward features from the upstream network.
 
         Args:
@@ -632,9 +635,16 @@ class RTMDetSepBNHead(RTMDetHead):
                     self.cls_convs[n][i].conv = self.cls_convs[0][i].conv
                     self.reg_convs[n][i].conv = self.reg_convs[0][i].conv
 
-        self.fusion_model = ConvolutionalSelfAttentionFusion(in_channels_visual=self.feat_channels,
-                                               in_channels_graph=1,
-                                               out_channels=self.feat_channels)
+        # self.fusion_model = ConvolutionalSelfAttentionFusion(in_channels_visual=self.feat_channels,
+        #                                        in_channels_graph=1,
+        #                                        out_channels=self.feat_channels)
+        # self.fusion_model =WeightedAlignmentFusion(in_channels_visual=self.feat_channels,
+        #                                        in_channels_graph=1,
+        #                                        out_channels=self.feat_channels)
+
+        # self.fusion_model1=EnhancedPerfectAlignmentFusion(in_channels_visual=self.feat_channels,
+        #                                        in_channels_graph=1,
+        #                                        out_channels=self.feat_channels)
 
     def init_weights(self) -> None:
         """Initialize weights of the head."""
@@ -651,7 +661,7 @@ class RTMDetSepBNHead(RTMDetHead):
             for rtm_obj in self.rtm_obj:
                 normal_init(rtm_obj, std=0.01, bias=bias_cls)
 
-    def forward(self, feats: Tuple[Tensor, ...],graph_feature) -> tuple:
+    def forward(self, feats: Tuple[Tensor, ...]) -> tuple:
         """Forward features from the upstream network.
 
         Args:
@@ -671,11 +681,15 @@ class RTMDetSepBNHead(RTMDetHead):
 
         cls_scores = []
         bbox_preds = []
+        # flag_graph=False
         for idx, (x, stride) in enumerate(
                 zip(feats, self.prior_generator.strides)):
-
-            graph_feat_resized = F.interpolate(graph_feature.unsqueeze(1) , size=x.shape[2:], mode='bilinear', align_corners=False)
-            fuse_feature=self.fusion_model(x,graph_feat_resized)
+            # if flag_graph:
+            #     graph_feat_resized = F.interpolate(graph_feature.unsqueeze(1) , size=x.shape[2:], mode='bilinear', align_corners=False)
+            #     fuse_feature=self.fusion_model1(x,graph_feat_resized)
+            #     flag_graph=False
+            # else:
+            fuse_feature=x
             cls_feat = fuse_feature
             reg_feat = fuse_feature
 
